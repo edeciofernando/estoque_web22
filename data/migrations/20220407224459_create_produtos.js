@@ -5,6 +5,9 @@ exports.up = function (knex) {
         table.string("marca", 40).notNullable();
         table.integer("quant", 4).notNullable();
         table.decimal("preco", 9.2).notNullable();
+        table.integer("fornecedor_id").notNullable().unsigned();
+        table.foreign("fornecedor_id").references("fornecedores.id")
+            .onDelete("restrict").onUpdate("cascade");
     });
 };
 

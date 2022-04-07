@@ -19,6 +19,20 @@ router.get("/", async (req, res) => {
   }
 });
 
+
+// método get é usado para consulta
+router.get("/fornecedores", async (req, res) => {
+  try {
+    const produtos = await dbKnex("produtos as p")
+    .select("p.id", "descricao", "marca", "preco", "nome as nome_fornecedor")
+    .innerJoin('fornecedores', 'fornecedor_id', 'fornecedores.id');
+    res.status(200).json(produtos); // retorna statusCode ok e os dados
+  } catch (error) {
+    res.status(400).json({ msg: error.message }); // retorna status de erro e msg
+  }
+});
+
+
 // Método post é usado para inclusão
 router.post("/", async (req, res) => {
   // faz a desestruturação dos dados recebidos no corpo da requisição
@@ -35,6 +49,8 @@ router.post("/", async (req, res) => {
     // insert, faz a inserção na tabela produtos (e retorna o id do registro inserido)
     const novo = await dbKnex("produtos").insert({ descricao, marca, quant, preco });
     res.status(201).json({ id: novo[0] }); // statusCode indica Create
+    // const novo = dbKnex("produtos").insert({ descricao, marca, quant, preco });
+    // console.log(novo.toString())
   } catch (error) {
     res.status(400).json({ msg: error.message }); // retorna status de erro e msg
   }
@@ -69,6 +85,8 @@ router.get("/marcas", async (req, res) => {
   try {
     const numProdMarcas = await dbKnex("produtos").select("marca").count({ num: "id" }).groupBy("marca");
     res.status(200).json(numProdMarcas);
+    // const numProdMarcas = dbKnex("produtos").select("marca").count({ num: "id" }).groupBy("marca");
+    // console.log(numProdMarcas.toString())
   } catch (error) {
     res.status(400).json({ msg: error.message }); // retorna status de erro e msg
   }
