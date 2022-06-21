@@ -28,18 +28,18 @@ router.post("/", async (req, res) => {
   console.log(req.body)
 
   // faz a desestruturação dos dados recebidos no corpo da requisição
-  const { descricao, marca, quant, preco } = req.body;
+  const { descricao, marca, quant, preco, foto } = req.body;
 
   // se algum dos campos não foi passado, irá enviar uma mensagem de erro e retornar
-  if (!descricao || !marca || !quant || !preco) {
-    res.status(400).json({ msg: "Enviar descricao, marca, quant e preco do produto" });
+  if (!descricao || !marca || !quant || !preco || !foto) {
+    res.status(400).json({ msg: "Enviar descricao, marca, quant, preco e foto do produto" });
     return;
   }
 
   // caso ocorra algum erro na inclusão, o programa irá capturar (catch) o erro
   try {
     // insert, faz a inserção na tabela produtos (e retorna o id do registro inserido)
-    const novo = await dbKnex("produtos").insert({ descricao, marca, quant, preco });
+    const novo = await dbKnex("produtos").insert({ descricao, marca, quant, preco, foto });
     res.status(201).json({ id: novo[0] }); // statusCode indica Create
   } catch (error) {
     res.status(400).json({ msg: error.message }); // retorna status de erro e msg
@@ -73,8 +73,25 @@ router.delete("/:id", async (req, res) => {
 // Quantidade de produtos por marca
 router.get("/marcas", async (req, res) => {
   try {
-    const numProdMarcas = await dbKnex("produtos").select("marca").count({ num: "id" }).groupBy("marca");
+    const numProdMarcas = await dbKnex("produtos")
+    .select("marca").sum({ total: dbKnex.raw("quant * preco")}).groupBy("marca");
     res.status(200).json(numProdMarcas);
+  } catch (error) {
+    res.status(400).json({ msg: error.message }); // retorna status de erro e msg
+  }
+});
+
+// Resumo do cadastro de produtos
+router.get("/resumo", async (req, res) => {
+  try {
+    // métodos que podem ser utilizados para obter dados estatísticos da tabela
+    const consulta = await dbKnex("produtos")
+      .count({ num: "*" })
+      .sum({ soma: "preco" })
+      .max({ maior: "preco" })
+      .avg({ media: "preco" });
+    const { num, soma, maior, media } = consulta[0];
+    res.status(200).json({ num, soma, maior, media: Number(media).toFixed(2) });
   } catch (error) {
     res.status(400).json({ msg: error.message }); // retorna status de erro e msg
   }
@@ -84,7 +101,7 @@ router.get("/marcas", async (req, res) => {
 router.get("/pesq-campos/:palavra", async (req, res) => {
   const { palavra } = req.params;
   try {
-    const produtos = await dbKnex("produtos").select("descricao", "marca", "preco")
+    const produtos = await dbKnex("produtos").select()
       .where("descricao", "like", `%${palavra}%`)
       .orWhere("marca", "like", `%${palavra}%`)
     res.status(200).json(produtos); // retorna statusCode ok e os dados
@@ -96,10 +113,10 @@ router.get("/pesq-campos/:palavra", async (req, res) => {
 router.put("/altera-marca/:marca/:taxa", async (req, res) => {
   const { marca, taxa } = req.params;   // ou const { id } = req.params
   try {
-//    const altera = dbKnex.raw(`update produtos set preco = preco + (preco * ${taxa} / 100) where marca='${marca}'`)
-//    const altera = dbKnex("produtos").update({preco: dbKnex.raw(`preco + (preco * ${taxa/100})`)}).where({ marca }); // ou .where({ id })
-//    console.log(altera.toString())
-    await dbKnex("produtos").update({preco: dbKnex.raw(`preco + (preco * ${taxa/100})`)}).where({ marca }); // ou .where({ id })
+    //    const altera = dbKnex.raw(`update produtos set preco = preco + (preco * ${taxa} / 100) where marca='${marca}'`)
+    //    const altera = dbKnex("produtos").update({preco: dbKnex.raw(`preco + (preco * ${taxa/100})`)}).where({ marca }); // ou .where({ id })
+    //    console.log(altera.toString())
+    await dbKnex("produtos").update({ preco: dbKnex.raw(`preco + (preco * ${taxa / 100})`) }).where({ marca }); // ou .where({ id })
     res.status(200).json(); // statusCode indica Ok
   } catch (error) {
     res.status(400).json({ msg: error.message }); // retorna status de erro e msg
